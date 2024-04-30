@@ -15,6 +15,10 @@ if(COMPILER_RT_TSAN_DEBUG_OUTPUT)
   list(APPEND TSAN_CFLAGS -DTSAN_DEBUG_OUTPUT=2)
 endif()
 
+if(COMPILER_RT_TSAN_NO_VECTORIZATION)
+  list(APPEND TSAN_CFLAGS -DTSAN_VECTORIZE=0)
+endif()
+
 # Add the actual runtime library.
 add_subdirectory(rtl)
 
