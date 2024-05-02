@@ -42,7 +42,7 @@ class FastState {
   struct Parts {
     u32 unused0_ : 8;
     u32 sid_ : 8;
-    u32 epoch_ : kEpochBits;
+    u32 epoch_ : kEpochBits; // Thread local time N_t
     u32 unused1_ : 1;
     u32 ignore_accesses_ : 1;
   };
@@ -149,7 +149,7 @@ class Shadow {
   struct Parts {
     u8 access_;
     Sid sid_;
-    u16 epoch_ : kEpochBits;
+    u16 epoch_ : kEpochBits; // Event local time C_e
     u16 is_read_ : 1;
     u16 is_atomic_ : 1;
   };
