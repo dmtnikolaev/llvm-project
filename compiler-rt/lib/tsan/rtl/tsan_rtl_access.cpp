@@ -417,8 +417,16 @@ NOINLINE void TraceRestartMemoryAccess(ThreadState* thr, uptr pc, uptr addr,
   MemoryAccess(thr, pc, addr, size, typ);
 }
 
+// Важная hot path функция.
+//
+// Вызывается из каждой инструментированной операции чтения/записи с адресацией в 1 2 4 и 8 байт.
+// 16-байтные операции обрабатываются отдельно в MemoryAccess16().
+//
+// В большинстве случаев вызывает проверку на data race для этой операции
+// и сохраняет информацию о ней в теневой памяти, см. CheckRaces().
 ALWAYS_INLINE USED void MemoryAccess(ThreadState* thr, uptr pc, uptr addr,
                                      uptr size, AccessType typ) {
+  // Теневая ячейка с историей 4-х операций над этой памятью.
   RawShadow* shadow_mem = MemToShadow(addr);
   UNUSED char memBuf[4][64];
   DPrintf2("#%d: Access: %d@%d %p/%zd typ=0x%x {%s, %s, %s, %s}\n", thr->tid,
@@ -430,15 +438,24 @@ ALWAYS_INLINE USED void MemoryAccess(ThreadState* thr, uptr pc, uptr addr,
            DumpShadow(memBuf[3], shadow_mem[3]));
 
   FastState fast_state = thr->fast_state;
+  // Теневое представление текущей операции.
   Shadow cur(fast_state, addr, size, typ);
 
+  // Без векторизации не делает ничего (!TSAN_VECTORIZE)
   LOAD_CURRENT_SHADOW(cur, shadow_mem);
+
+  // Если в истории есть точно такая же [1] операция, то не нужно проверять и сохранять текущую.
   if (LIKELY(ContainsSameAccess(shadow_mem, cur, shadow, access, typ)))
     return;
+  // У потока может быть явно отключена проверка операций в некоторых случаях.
   if (UNLIKELY(fast_state.GetIgnoreBit()))
     return;
+  // Вспомогательные операции для вывода цепочки событий при гонке.
+  // Не работают при TSAN_NO_HISTORY.
   if (!TryTraceMemoryAccess(thr, pc, addr, size, typ))
     return TraceRestartMemoryAccess(thr, pc, addr, size, typ);
+
+  // Проверяем на нарушение HB, сохраняем операцию в истории.
   CheckRaces(thr, shadow_mem, cur, shadow, access, typ);
 }
 
