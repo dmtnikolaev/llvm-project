@@ -15,6 +15,7 @@
 #include "sanitizer_common/sanitizer_atomic.h"
 #include "sanitizer_common/sanitizer_common.h"
 #include "sanitizer_common/sanitizer_deadlock_detector_interface.h"
+#include "sanitizer_common/sanitizer_ring_queue.h"
 #include "tsan_defs.h"
 #include "tsan_dense_alloc.h"
 #include "tsan_shadow.h"
@@ -63,6 +64,10 @@ struct SyncVar {
   DDMutex dd;
   VectorClock *read_clock;  // Used for rw mutexes only.
   VectorClock *clock;
+  VectorClock *wcp_clock;
+
+  Queue<VectorClock, kLockTimesHistoryCount> acquire_times[kThreadSlotCount];
+  Queue<VectorClock, kLockTimesHistoryCount> release_times[kThreadSlotCount];
 
   void Init(ThreadState *thr, uptr pc, uptr addr, bool save_stack);
   void Reset();

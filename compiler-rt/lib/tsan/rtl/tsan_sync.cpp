@@ -38,6 +38,7 @@ void SyncVar::Reset() {
   recursion = 0;
   atomic_store_relaxed(&flags, 0);
   Free(clock);
+  Free(wcp_clock);
   Free(read_clock);
 }
 
@@ -177,6 +178,10 @@ void MetaMap::ResetClocks() {
     if (s->clock) {
       InternalFree(s->clock, &cache);
       s->clock = nullptr;
+    }
+    if (s->wcp_clock) {
+      InternalFree(s->wcp_clock, &cache);
+      s->wcp_clock = nullptr;
     }
     if (s->read_clock) {
       InternalFree(s->read_clock, &cache);

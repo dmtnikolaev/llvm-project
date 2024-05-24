@@ -179,6 +179,7 @@ set(SANITIZER_IMPL_HEADERS
   sanitizer_redefine_builtins.h
   sanitizer_report_decorator.h
   sanitizer_ring_buffer.h
+  sanitizer_ring_queue.h
   sanitizer_signal_interceptors.inc
   sanitizer_stack_store.h
   sanitizer_stackdepot.h

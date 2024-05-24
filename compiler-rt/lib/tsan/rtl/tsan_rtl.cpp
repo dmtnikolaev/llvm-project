@@ -307,11 +307,13 @@ void SlotAttachAndLock(ThreadState* thr) {
   if (thr->slot_epoch != ctx->global_epoch) {
     thr->slot_epoch = ctx->global_epoch;
     thr->clock.Reset();
+    thr->wcp_clock.Reset();
 #if !SANITIZER_GO
     thr->last_sleep_stack_id = kInvalidStackID;
     thr->last_sleep_clock.Reset();
 #endif
   }
+  // wcp_clock не сохраняет локальное время, поэтому тут только HB-часы.
   thr->clock.Set(slot->sid, epoch);
   slot->journal.PushBack({thr->tid, epoch});
 }

@@ -58,6 +58,8 @@ enum class Sid : u8 {};
 constexpr uptr kThreadSlotCount = 256;
 constexpr Sid kFreeSid = static_cast<Sid>(255);
 
+constexpr uptr kLockTimesHistoryCount = kThreadSlotCount;
+
 // Abstract time unit, vector clock element.
 enum class Epoch : u16 {};
 constexpr uptr kEpochBits = 14;

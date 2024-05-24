@@ -449,7 +449,20 @@ void Acquire(ThreadState *thr, uptr pc, uptr addr) {
   ReadLock lock(&s->mtx);
   if (!s->clock)
     return;
-  thr->clock.Acquire(s->clock);
+  thr->clock.Acquire(s->clock); // Algorithm 1, line 1
+  thr->wcp_clock.Acquire(s->wcp_clock); // Algorithm 1, line 2
+
+  // Дополнение WCP-часов локальными часами потока.
+  auto wcp_order_clock = thr->wcp_clock;
+  wcp_order_clock.Set(thr->slot->sid, thr->fast_state.epoch());
+
+  // Algorithm 1, line 3
+  for( uptr i = 0; i < kThreadSlotCount; ++i )
+  {
+    if (i == static_cast<uptr>(thr->slot->sid))
+      continue;
+    s->acquire_times[i].Enqueue(wcp_order_clock);
+  }
 }
 
 void AcquireGlobal(ThreadState *thr) {
