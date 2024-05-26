@@ -28,6 +28,7 @@
 #include "sanitizer_common/sanitizer_allocator.h"
 #include "sanitizer_common/sanitizer_allocator_internal.h"
 #include "sanitizer_common/sanitizer_asm.h"
+#include "sanitizer_common/sanitizer_addrhashmap.h"
 #include "sanitizer_common/sanitizer_common.h"
 #include "sanitizer_common/sanitizer_deadlock_detector_interface.h"
 #include "sanitizer_common/sanitizer_libignore.h"
@@ -302,6 +303,7 @@ struct FiredSuppression {
   Suppression *supp;
 };
 
+typedef AddrHashMap<VectorClock, kReleaseHbHistoryCount> ReleaseMap;
 struct Context {
   Context();
 
@@ -309,7 +311,8 @@ struct Context {
 #if !SANITIZER_GO
   bool after_multithreaded_fork;
 #endif
-
+  ReleaseMap releases_r;
+  ReleaseMap releases_w;
   MetaMap metamap;
 
   Mutex report_mtx;

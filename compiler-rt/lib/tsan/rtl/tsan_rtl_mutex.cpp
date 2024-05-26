@@ -12,6 +12,7 @@
 
 #include <sanitizer_common/sanitizer_deadlock_detector_interface.h>
 #include <sanitizer_common/sanitizer_stackdepot.h>
+#include <sanitizer_common/sanitizer_ring_queue.h>
 
 #include "tsan_rtl.h"
 #include "tsan_flags.h"
@@ -473,6 +474,18 @@ void AcquireGlobal(ThreadState *thr) {
   for (auto &slot : ctx->slots) thr->clock.Set(slot.sid, slot.epoch());
 }
 
+void UpdateHbReadClock(const uptr key, const VectorClock &val, void *arg){
+    ReleaseMap::Handle h(&ctx->releases_r, key);
+    auto* h_t = reinterpret_cast<VectorClock*>(arg);
+    h->Acquire(h_t);
+}
+
+void UpdateHbWriteClock(const uptr key, const VectorClock &val, void *arg){
+    ReleaseMap::Handle h(&ctx->releases_w, key);
+    auto* h_t = reinterpret_cast<VectorClock*>(arg);
+    h->Acquire(h_t);
+}
+
 void Release(ThreadState *thr, uptr pc, uptr addr) {
   DPrintf("#%d: Release %zx\n", thr->tid, addr);
   if (thr->ignore_sync)
@@ -481,7 +494,31 @@ void Release(ThreadState *thr, uptr pc, uptr addr) {
   {
     auto s = ctx->metamap.GetSyncOrCreate(thr, pc, addr, false);
     Lock lock(&s->mtx);
+    auto slot_id = static_cast<uptr>(thr->slot->sid);
+    auto wcp_order_clock = thr->wcp_clock;
+    wcp_order_clock.Set(thr->slot->sid, thr->fast_state.epoch());
+    auto* acquire_q = &s->acquire_times[slot_id];
+    auto* release_q= &s->release_times[slot_id];
+    while(!acquire_q->Empty() &&
+           *acquire_q->Front() <= wcp_order_clock)
+    {
+      acquire_q->Dequeue();
+      auto r_t = release_q->Dequeue();
+      thr->wcp_clock.Acquire(&r_t);
+    }
+
+    ctx->releases_r.ForEach(UpdateHbReadClock, &thr->clock);
+    ctx->releases_w.ForEach(UpdateHbWriteClock, &thr->clock);
+
     thr->clock.Release(&s->clock);
+    thr->wcp_clock.Release(&s->wcp_clock);
+
+    for( uptr i = 0; i < kThreadSlotCount; ++i )
+    {
+      if (i == static_cast<uptr>(thr->slot->sid))
+        continue;
+      s->release_times[i].Enqueue(thr->clock);
+    }
   }
   IncrementEpoch(thr);
 }

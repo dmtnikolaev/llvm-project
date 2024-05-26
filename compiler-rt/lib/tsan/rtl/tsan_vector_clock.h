@@ -32,6 +32,7 @@ class VectorClock {
   void ReleaseAcquire(VectorClock** dstp);
 
   VectorClock& operator=(const VectorClock& other);
+  bool operator<=(const VectorClock& other) const;
 
  private:
   Epoch clk_[kThreadSlotCount] VECTOR_ALIGNED;

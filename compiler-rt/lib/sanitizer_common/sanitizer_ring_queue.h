@@ -28,6 +28,8 @@ class Queue {
   /// Проверяет, заполнен ли буфер полностью.
   bool Full() const { return Size() == N; }
 
+  T* Front() { return &storage_[head_]; }
+
  private:
   static constexpr auto kMask = N - 1;
 
@@ -48,7 +50,7 @@ void Queue<T, N>::Enqueue(T obj) {
 
 template <typename T, u32 N>
 T Queue<T, N>::Dequeue() {
-  assrt(!Empty() && "Ring: impossible to dequeue from empty ring");
+  assert(!Empty() && "Ring: impossible to dequeue from empty ring");
 
   return storage_[Mask(tail_++)];
 }

@@ -59,6 +59,7 @@ constexpr uptr kThreadSlotCount = 256;
 constexpr Sid kFreeSid = static_cast<Sid>(255);
 
 constexpr uptr kLockTimesHistoryCount = kThreadSlotCount;
+constexpr uptr kReleaseHbHistoryCount = kThreadSlotCount * 4;
 
 // Abstract time unit, vector clock element.
 enum class Epoch : u16 {};

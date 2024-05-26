@@ -82,6 +82,16 @@ VectorClock& VectorClock::operator=(const VectorClock& other) {
   return *this;
 }
 
+bool VectorClock::operator<=(const VectorClock& other) const
+{
+  for (uptr i = 0; i < kThreadSlotCount; i++)
+  {
+    if (clk_[i] > other.clk_[i]) return false;
+  }
+
+  return true;
+}
+
 void VectorClock::ReleaseStoreAcquire(VectorClock** dstp) {
   VectorClock* dst = AllocClock(dstp);
 #if !TSAN_VECTORIZE
